@@ -1,16 +1,25 @@
+import os
 import requests
+
+API_KEY = os.getenv("FACT_API_KEY")
 
 def google_fact_check(query):
     try:
-        url = f"https://api.duckduckgo.com/?q={query}&format=json"
-        res = requests.get(url).json()
+        url = "https://factchecktools.googleapis.com/v1alpha1/claims:search"
 
-        related = res.get("RelatedTopics", [])
+        params = {
+            "query": query,
+            "key": API_KEY
+        }
 
-        if len(related) > 0:
-            return 0.2
+        res = requests.get(url, params=params).json()
+
+        claims = res.get("claims", [])
+
+        if len(claims) > 0:
+            return 0.2   # likely real
         else:
-            return 0.7
+            return 0.7   # suspicious
 
     except:
         return 0.5
