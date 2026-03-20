@@ -19,7 +19,7 @@ Prerequisites
 -------------
     model.h5 and tokenizer.pkl must exist (run train.py first).
 """
-
+from fact_api import google_fact_check
 import os
 import json
 
@@ -73,29 +73,24 @@ def get_tokenizer():
 
 
 def predict_news(text: str):
-    """
-    Classify a piece of news text as REAL or FAKE.
-
-    Parameters
-    ----------
-    text : str   Raw news text (title + body, or just body).
-
-    Returns
-    -------
-    label      : str   "FAKE" or "REAL"
-    confidence : float Confidence percentage [50, 100]
-    ml_prob    : float Raw model probability (0 = REAL, 1 = FAKE)
-    rb_score   : float Rule-based suspicion score [0, 1]
-    """
     model = get_model()
     tokenizer = get_tokenizer()
 
     X = texts_to_padded_sequences([text], tokenizer, maxlen=MAX_SEQ_LENGTH)
     ml_prob = float(model.predict(X, verbose=0)[0][0])
-    label, confidence = combined_prediction(ml_prob, text)
+
     rb_score = fact_check_score(text)
 
-    return label, confidence, ml_prob, rb_score
+    # NEW FACT CHECK
+    fact_score = google_fact_check(text)
+
+    # COMBINE ALL
+    final_score = (ml_prob * 0.6) + (rb_score * 0.2) + (fact_score * 0.2)
+
+    label = "FAKE" if final_score > 0.5 else "REAL"
+    confidence = round(final_score * 100, 2)
+
+    return label, confidence, ml_prob, rb_score, fact_score
 
 
 
@@ -113,7 +108,7 @@ def predict():
         return jsonify({"error": "No text provided."}), 400
 
     try:
-        label, confidence, ml_prob, rb_score = predict_news(text)
+        label, confidence, ml_prob, rb_score, fact_score = predict_news(text)
     except FileNotFoundError as exc:
         return jsonify({"error": str(exc)}), 503
 
@@ -123,6 +118,7 @@ def predict():
             "confidence": confidence,
             "ml_probability": round(ml_prob * 100, 1),
             "rule_based_score": round(rb_score * 100, 1),
+            "fact_check_score": round(fact_score * 100, 1),
             "explanation": _build_explanation(label, ml_prob, rb_score),
         }
     )
@@ -157,4 +153,6 @@ def _build_explanation(label: str, ml_prob: float, rb_score: float) -> str:
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
