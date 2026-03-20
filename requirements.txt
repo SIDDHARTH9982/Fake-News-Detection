@@ -3,6 +3,6 @@ flask>=2.2.0
 pandas>=1.5.0
 numpy>=1.23.0
 scikit-learn>=1.1.0
-gunicorn
 requests
+gunicorn==21.2.0
 google-generativeai
