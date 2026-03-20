@@ -19,6 +19,8 @@ Prerequisites
 -------------
     model.h5 and tokenizer.pkl must exist (run train.py first).
 """
+import os
+API_KEY = os.getenv("FACT_API_KEY")
 from fact_api import google_fact_check
 import os
 import json
