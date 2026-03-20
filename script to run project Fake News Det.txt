@@ -1,0 +1,3 @@
+script to run project Fake News Detection
+venv\Scripts\activate
+python app.py

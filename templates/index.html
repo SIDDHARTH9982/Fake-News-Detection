@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fake News Detector</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <div class="container">
+   
+    <header class="header">
+      <div class="logo">📰</div>
+      <h1>Fake News Detector</h1>
+      <p class="subtitle">
+        Powered by Deep Learning &amp; NLP &mdash; paste any news article below
+        and find out whether it's <strong>REAL</strong> or <strong>FAKE</strong>.
+      </p>
+    </header>
+
+    
+    <div class="card">
+      <label for="newsText" class="input-label">News Text</label>
+      <textarea
+        id="newsText"
+        class="news-input"
+        rows="8"
+        placeholder="Paste the headline and/or body of the news article here…"
+        autofocus
+      ></textarea>
+
+      <div class="actions">
+        <button id="checkBtn" class="btn btn-primary" onclick="checkNews()">
+          🔍 Check News
+        </button>
+        <button class="btn btn-secondary" onclick="clearAll()">✕ Clear</button>
+      </div>
+    </div>
+
+    
+    <div id="resultCard" class="card result-card hidden">
+      <div id="verdict" class="verdict"></div>
+      <div class="metrics">
+        <div class="metric">
+          <span class="metric-label">Confidence</span>
+          <span id="confidence" class="metric-value"></span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">ML Probability (fake)</span>
+          <span id="mlProb" class="metric-value"></span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Rule-Based Score</span>
+          <span id="rbScore" class="metric-value"></span>
+        </div>
+      </div>
+
+      <div class="bar-wrapper">
+        <div id="confidenceBar" class="bar"></div>
+      </div>
+
+      <p id="explanation" class="explanation"></p>
+    </div>
+
+    
+    <div id="errorMsg" class="error-msg hidden"></div>
+
+    
+    <div id="loader" class="loader hidden">
+      <div class="spinner"></div>
+      <p>Analysing…</p>
+    </div>
+  </div>
+
+  <script>
+    async function checkNews() {
+      const text = document.getElementById("newsText").value.trim();
+      if (!text) {
+        showError("Please enter some news text first.");
+        return;
+      }
+
+      hideError();
+      hideResult();
+      showLoader();
+      document.getElementById("checkBtn").disabled = true;
+
+      try {
+        const resp = await fetch("/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+
+        const data = await resp.json();
+        hideLoader();
+        document.getElementById("checkBtn").disabled = false;
+
+        if (data.error) {
+          showError(data.error);
+          return;
+        }
+
+        showResult(data);
+      } catch (err) {
+        hideLoader();
+        document.getElementById("checkBtn").disabled = false;
+        showError("Network error – make sure the server is running.");
+      }
+    }
+
+    function showResult(data) {
+      const card = document.getElementById("resultCard");
+      const verdict = document.getElementById("verdict");
+
+      verdict.textContent = data.label;
+      verdict.className =
+        "verdict " + (data.label === "FAKE" ? "verdict-fake" : "verdict-real");
+
+      document.getElementById("confidence").textContent =
+        data.confidence + "%";
+      document.getElementById("mlProb").textContent =
+        data.ml_probability + "%";
+      document.getElementById("rbScore").textContent =
+        data.rule_based_score + "%";
+      document.getElementById("explanation").textContent =
+        data.explanation;
+
+      const bar = document.getElementById("confidenceBar");
+      bar.style.width = data.confidence + "%";
+      bar.className =
+        "bar " + (data.label === "FAKE" ? "bar-fake" : "bar-real");
+
+      card.classList.remove("hidden");
+    }
+
+    function hideResult() {
+      document.getElementById("resultCard").classList.add("hidden");
+    }
+
+    function clearAll() {
+      document.getElementById("newsText").value = "";
+      hideResult();
+      hideError();
+    }
+
+    function showLoader() {
+      document.getElementById("loader").classList.remove("hidden");
+    }
+
+    function hideLoader() {
+      document.getElementById("loader").classList.add("hidden");
+    }
+
+    function showError(msg) {
+      const el = document.getElementById("errorMsg");
+      el.textContent = msg;
+      el.classList.remove("hidden");
+    }
+
+    function hideError() {
+      document.getElementById("errorMsg").classList.add("hidden");
+    }
+
+    
+    document.addEventListener("keydown", function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") checkNews();
+    });
+  </script>
+</body>
+</html>

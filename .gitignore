@@ -1,0 +1,30 @@
+# Byte-compiled / optimised
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Trained artefacts (too large for version control)
+model.h5
+tokenizer.pkl
+
+# Dataset CSVs (download from Kaggle – see data/README.md)
+data/*.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# macOS
+.DS_Store
+
+# Misc
+*.log
